@@ -181,6 +181,10 @@ export default class EduaiotWechatSyncPlugin extends Plugin {
 
   async onload() {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    if (this.settings.folder === '微信视频') {
+      this.settings.folder = DEFAULT_SETTINGS.folder;
+      await this.saveData(this.settings);
+    }
     this.addSettingTab(new SettingTab(this.app, this));
     this.addCommand({ id: 'sync-now', name: '立即同步', callback: () => this.sync(true) });
     this.addRibbonIcon('video', '立即同步易度随手存', () => this.sync(true));

@@ -1,7 +1,7 @@
 {
   "id": "eduaiot-wechat-sync",
   "name": "EduAIoT WeChat Sync",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "minAppVersion": "1.4.0",
   "description": "Sync videos, articles, photos, files and voice recordings saved in the Yidu Suishoucun WeChat mini program into your vault, with transcripts and AI notes.",
   "author": "EduAIoT",
