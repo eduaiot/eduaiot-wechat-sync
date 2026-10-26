@@ -158,13 +158,19 @@ function shortTitle(title: string) {
   return name || '未命名视频';
 }
 
-function hostName() {
-  if (!Platform.isDesktopApp) return '';
-  try {
-    return (window as any).require('os').hostname() as string;
-  } catch {
-    return '';
-  }
+function deviceName(vault: string) {
+  const system = Platform.isIosApp
+    ? 'iOS'
+    : Platform.isAndroidApp
+      ? 'Android'
+      : Platform.isMacOS
+        ? 'Mac'
+        : Platform.isWin
+          ? 'Windows'
+          : Platform.isLinux
+            ? 'Linux'
+            : '';
+  return [system, vault].filter(Boolean).join(' · ');
 }
 
 export default class EduaiotWechatSyncPlugin extends Plugin {
@@ -204,7 +210,7 @@ export default class EduaiotWechatSyncPlugin extends Plugin {
   }
 
   async bind(code: string) {
-    const name = hostName() || this.app.vault.getName();
+    const name = deviceName(this.app.vault.getName());
     const res = await requestUrl({
       url: `${this.base}/api/bind`,
       method: 'POST',

@@ -16,7 +16,7 @@ Save videos, articles, photos, files and voice recordings on your phone with the
 
 ## Requirements
 
-- The **易度随手存** WeChat mini program (search for it in WeChat). You sign in to it with your WeChat account.
+- **An account is required.** The plugin only works together with the **Yidu Capture (易度随手存)** WeChat mini program, which you sign in to with your WeChat account. No payment is required.
 - Desktop or mobile Obsidian 1.4.0 or later.
 
 ## Getting started
@@ -37,16 +37,26 @@ Save videos, articles, photos, files and voice recordings on your phone with the
 
 ## Network use and privacy
 
-This plugin needs a network connection to work. It connects to:
+This plugin needs a network connection to work. It connects to two kinds of remote services:
 
-- **The sync server**, `https://wechat-obsidian.eduaiot.com` by default, or the server URL you set. The plugin:
-  - sends the bind code and this computer's host name when you bind;
-  - checks for new items at the sync interval (every 30 seconds by default), using the device token received at binding;
-  - downloads files you uploaded in the mini program;
-  - reports each item's sync result and the note's path in your vault, so the mini program can show where it was saved.
-- **Content platforms' media servers** (for example WeChat, Bilibili, Douyin CDNs), to download the videos, covers and images of the links you saved.
+1. **The Yidu Capture sync server**, `https://wechat-obsidian.eduaiot.com` by default, or the server URL you set in the advanced settings. It is needed to receive the items you save on your phone. The plugin:
+   - sends the bind code and a device name (system type and vault name, for example `Mac · My Vault`) when you bind;
+   - checks for new items at the sync interval (every 30 seconds by default), using the device token received at binding;
+   - downloads the files you uploaded in the mini program;
+   - reports each item's sync result and the note's path in your vault, so the mini program can show where it was saved.
+2. **The media servers of the content platforms** you saved links from (for example WeChat, Bilibili and Douyin). They are needed to download the videos, covers and images of those links.
 
-The plugin does not read or upload any other notes in your vault, and it contains no analytics or telemetry. Uploaded files are deleted from the server after they are synced. See the mini program's privacy policy for how the server handles your data.
+The plugin does not read or upload any other notes or files in your vault, and it contains no client-side telemetry or ads.
+
+**What the sync server stores**
+
+| Data | Retention |
+| --- | --- |
+| Your account: WeChat OpenID and your mini program settings | Until you stop using the service |
+| Bound devices: device name and last sync time | Until you remove the device in the mini program |
+| Saved items: link, title, platform, article text, transcript, AI notes, sync status and note path | Until you delete the item in the mini program |
+| Uploaded files (photos, videos, recordings, documents) | Deleted after they are synced to your vault; unsynced files are deleted after 7 days |
+| Cover images | Deleted after 7 days |
 
 ## Manual installation
 
@@ -74,7 +84,7 @@ Download `main.js` and `manifest.json` from the [latest release](../../releases/
 
 ### 使用前提
 
-- 微信小程序 **易度随手存**（在微信里搜索），使用微信账号登录。
+- **需要账号。** 插件必须配合微信小程序 **易度随手存** 使用，小程序用微信账号登录。目前不收费。
 - Obsidian 1.4.0 及以上版本，电脑和手机都可以用。
 
 ### 开始使用
@@ -95,16 +105,26 @@ Download `main.js` and `manifest.json` from the [latest release](../../releases/
 
 ### 网络使用与隐私
 
-插件需要联网才能工作，会连接：
+插件需要联网才能工作，会连接两类远程服务：
 
-- **同步服务器**：默认 `https://wechat-obsidian.eduaiot.com`，或你设置的地址。插件会：
-  - 绑定时发送绑定码和本机名称；
-  - 用绑定时获得的设备令牌，按同步间隔（默认 30 秒）检查新内容；
-  - 下载你在小程序里上传的文件；
-  - 回报每条内容的同步结果和笔记在库里的路径，方便在小程序里查看保存位置。
-- **内容平台的媒体服务器**（如微信、B 站、抖音的 CDN）：下载你保存的链接对应的视频、封面和图片。
+1. **易度随手存同步服务器**：默认 `https://wechat-obsidian.eduaiot.com`，或你在高级设置里填写的地址，用来接收你在手机上保存的内容。插件会：
+   - 绑定时发送绑定码和设备名称（系统类型加笔记库名称，例如 `Mac · 我的笔记`）；
+   - 用绑定时获得的设备令牌，按同步间隔（默认 30 秒）检查新内容；
+   - 下载你在小程序里上传的文件；
+   - 回报每条内容的同步结果和笔记在库里的路径，方便在小程序里查看保存位置。
+2. **你保存的链接所属平台的媒体服务器**（如微信、B 站、抖音）：用来下载这些链接的视频、封面和图片。
 
-插件不会读取或上传笔记库里的其他笔记，也没有任何统计或埋点。上传的文件同步完成后会从服务器删除。服务器如何处理数据，请查看小程序的隐私政策。
+插件不会读取或上传笔记库里的其他笔记和文件，也没有任何客户端统计、埋点或广告。
+
+**同步服务器保存的数据**
+
+| 数据 | 保留时间 |
+| --- | --- |
+| 账号：微信 OpenID 和你在小程序里的设置 | 直到你停止使用服务 |
+| 已绑定的设备：设备名称和最近同步时间 | 直到你在小程序里解除这台设备 |
+| 保存的内容：链接、标题、平台、图文正文、文字稿、AI 笔记、同步状态和笔记路径 | 直到你在小程序里删除这条记录 |
+| 上传的文件（照片、视频、录音、文档） | 同步到笔记库后删除；7 天内未同步的也会删除 |
+| 封面图 | 7 天后删除 |
 
 ### 手动安装
 

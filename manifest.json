@@ -1,9 +1,9 @@
 {
   "id": "eduaiot-wechat-sync",
   "name": "Yidu Capture",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "minAppVersion": "1.4.0",
-  "description": "Sync videos, articles, photos, files and voice recordings saved in the Yidu Capture (易度随手存) WeChat mini program into your vault, with transcripts and AI notes.",
+  "description": "Sync videos, articles, photos, files and voice recordings saved in the Yidu Capture WeChat mini program into your vault, with transcripts and AI notes.",
   "author": "EduAIoT",
   "authorUrl": "https://eduaiot.com",
   "isDesktopOnly": false

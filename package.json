@@ -1,6 +1,6 @@
 {
   "name": "eduaiot-wechat-sync",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "type": "module",
   "scripts": {
     "dev": "node esbuild.config.mjs",
