@@ -1,8 +1,8 @@
-# Yidu Capture
+# EduAIoT WeChat Sync
 
 [中文说明](#中文说明)
 
-Save videos, articles, photos, files and voice recordings on your phone with the **易度随手存** (Yidu Capture) WeChat mini program or the iOS Shortcut, and they appear in your vault automatically — with transcripts and AI notes.
+Save videos, articles, photos, files and voice recordings on your phone with the **易度随手存** (Yidu Suishoucun) WeChat mini program or the iOS Shortcut, and they appear in your vault automatically — with transcripts and AI notes.
 
 ## Features
 
@@ -16,7 +16,7 @@ Save videos, articles, photos, files and voice recordings on your phone with the
 
 ## Requirements
 
-- **An account is required.** The plugin only works together with the **Yidu Capture (易度随手存)** WeChat mini program, which you sign in to with your WeChat account. No payment is required.
+- **An account is required.** The plugin only works together with the **易度随手存 (Yidu Suishoucun)** WeChat mini program, which you sign in to with your WeChat account. No payment is required.
 - Desktop or mobile Obsidian 1.4.0 or later.
 
 ## Getting started
@@ -24,7 +24,7 @@ Save videos, articles, photos, files and voice recordings on your phone with the
 1. Install and enable the plugin.
 2. In the mini program, open **设置 (Settings)** and copy the 6-digit bind code.
 3. In the plugin settings, paste the code and click **立即绑定 (Bind)**.
-4. Save something in the mini program. It is synced to your vault within about 30 seconds, or immediately via the ribbon icon or the command **Yidu Capture: 立即同步 (Sync now)**.
+4. Save something in the mini program. It is synced to your vault within about 30 seconds, or immediately via the ribbon icon or the command **EduAIoT WeChat Sync: 立即同步 (Sync now)**.
 
 ## Settings
 
@@ -39,7 +39,7 @@ Save videos, articles, photos, files and voice recordings on your phone with the
 
 This plugin needs a network connection to work. It connects to two kinds of remote services:
 
-1. **The Yidu Capture sync server**, `https://wechat-obsidian.eduaiot.com` by default, or the server URL you set in the advanced settings. It is needed to receive the items you save on your phone. The plugin:
+1. **The 易度随手存 sync server**, `https://wechat-obsidian.eduaiot.com` by default, or the server URL you set in the advanced settings. It is needed to receive the items you save on your phone. The plugin:
    - sends the bind code and a device name (system type and vault name, for example `Mac · My Vault`) when you bind;
    - checks for new items at the sync interval (every 30 seconds by default), using the device token received at binding;
    - downloads the files you uploaded in the mini program;
@@ -70,7 +70,7 @@ Download `main.js` and `manifest.json` from the [latest release](../../releases/
 
 ## 中文说明
 
-在手机上用 **易度随手存**（Yidu Capture）微信小程序或 iPhone 快捷指令保存视频、文章、照片、文件和录音，内容会自动同步到你的 Obsidian 笔记库，并附带文字稿和 AI 笔记。
+在手机上用 **易度随手存** 微信小程序或 iPhone 快捷指令保存视频、文章、照片、文件和录音，内容会自动同步到你的 Obsidian 笔记库，并附带文字稿和 AI 笔记。
 
 ### 功能
 
@@ -92,7 +92,7 @@ Download `main.js` and `manifest.json` from the [latest release](../../releases/
 1. 安装并启用插件。
 2. 在小程序「设置」页复制 6 位绑定码。
 3. 在插件设置里粘贴绑定码，点「立即绑定」。
-4. 在小程序里保存内容，大约 30 秒内会同步到笔记库；也可以点左侧边栏图标或执行命令「Yidu Capture: 立即同步」马上同步。
+4. 在小程序里保存内容，大约 30 秒内会同步到笔记库；也可以点左侧边栏图标或执行命令「EduAIoT WeChat Sync: 立即同步」马上同步。
 
 ### 设置项
 
