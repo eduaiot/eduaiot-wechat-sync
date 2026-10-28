@@ -1,5 +1,5 @@
 import { App, Notice, Platform, Plugin, PluginSettingTab, Setting, TFile, TFolder, moment, normalizePath, requestUrl } from 'obsidian';
-import { hasSection, insertBlock } from './md-headings';
+import { hasSection, insertBlock } from './md-headings/index';
 
 interface Settings {
   serverUrl: string;
@@ -20,6 +20,7 @@ interface InboxItem {
   platform: string;
   author: string;
   kind?: 'image' | 'video' | 'audio' | 'file';
+  type?: 'idea';
   file_name?: string;
   file_ext?: string;
   options: { saveVideo: boolean; saveCover: boolean; folder: string };
@@ -317,7 +318,24 @@ export default class EduaiotWechatSyncPlugin extends Plugin {
     }
   }
 
+  private async appendIdea(item: InboxItem) {
+    const root = normalizePath(item.options?.folder || this.settings.folder || DEFAULT_SETTINGS.folder);
+    const folder = `${root}/闪念`;
+    await this.ensureFolder(folder);
+    const created = moment(item.createdAt);
+    const path = `${folder}/${created.format('YYYY-MM-DD')}.md`;
+    const line = `- ${created.format('HH:mm')} ${item.text.trim().replace(/\n+/g, '\n  ')}\n`;
+    const file = this.app.vault.getAbstractFileByPath(path);
+    if (file instanceof TFile) {
+      await this.app.vault.process(file, (content) => (content && !content.endsWith('\n') ? `${content}\n` : content) + line);
+    } else {
+      await this.app.vault.create(path, line);
+    }
+    return path;
+  }
+
   private async importItem(item: InboxItem) {
+    if (item.type === 'idea') return this.appendIdea(item);
     const opts = item.options || { saveVideo: true, saveCover: false, folder: '' };
     const root = normalizePath(opts.folder || this.settings.folder || DEFAULT_SETTINGS.folder);
     const created = moment(item.createdAt);
