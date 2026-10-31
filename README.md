@@ -55,12 +55,22 @@ The plugin does not read or upload any other notes or files in your vault, and i
 | Your account: WeChat OpenID and your mini program settings | Until you stop using the service |
 | Bound devices: device name and last sync time | Until you remove the device in the mini program |
 | Saved items: link, title, platform, article text, transcript, AI notes, sync status and note path | Until you delete the item in the mini program |
-| Uploaded files (photos, videos, recordings, documents) | Deleted after they are synced to your vault; unsynced files are deleted after 7 days |
+| Uploaded photos, videos and documents | Deleted after they are synced to your vault; unsynced files are deleted after 7 days |
+| Voice recordings | Kept for 30 days so you can share them from the mini program; recordings you share are kept until the share expires or you cancel it |
+| Shares you create | Until they expire or you cancel them |
 | Cover images | Deleted after 7 days |
 
 ## Manual installation
 
 Download `main.js` and `manifest.json` from the [latest release](../../releases/latest) and copy them into `<your vault>/.obsidian/plugins/eduaiot-wechat-sync/`, then enable the plugin in **Settings → Community plugins**.
+
+## Contact
+
+Scan to open the 易度随手存 mini program, or add me on WeChat for feedback and help. Website: https://wechat-obsidian.eduaiot.com
+
+| Mini program | WeChat |
+| --- | --- |
+| <img src="assets/miniprogram.jpg" width="180" alt="易度随手存 mini program"> | <img src="assets/wechat.png" width="180" alt="WeChat"> |
 
 ## License
 
@@ -123,12 +133,22 @@ Download `main.js` and `manifest.json` from the [latest release](../../releases/
 | 账号：微信 OpenID 和你在小程序里的设置 | 直到你停止使用服务 |
 | 已绑定的设备：设备名称和最近同步时间 | 直到你在小程序里解除这台设备 |
 | 保存的内容：链接、标题、平台、图文正文、文字稿、AI 笔记、同步状态和笔记路径 | 直到你在小程序里删除这条记录 |
-| 上传的文件（照片、视频、录音、文档） | 同步到笔记库后删除；7 天内未同步的也会删除 |
+| 上传的照片、视频、文档 | 同步到笔记库后删除；7 天内未同步的也会删除 |
+| 录音 | 保留 30 天，方便在小程序里分享；分享中的录音保留到分享失效或你取消分享 |
+| 你创建的分享 | 直到过期或你取消分享 |
 | 封面图 | 7 天后删除 |
 
 ### 手动安装
 
 从 [最新版本](../../releases/latest) 下载 `main.js` 和 `manifest.json`，放进 `你的笔记库/.obsidian/plugins/eduaiot-wechat-sync/`，然后在「设置 → 第三方插件」里启用。
+
+### 联系我们
+
+扫码打开易度随手存小程序；使用中遇到问题、想要新功能，欢迎加微信交流。官网：https://wechat-obsidian.eduaiot.com
+
+| 小程序 | 个人微信 |
+| --- | --- |
+| <img src="assets/miniprogram.jpg" width="180" alt="易度随手存小程序码"> | <img src="assets/wechat.png" width="180" alt="个人微信"> |
 
 ### 许可证
 
