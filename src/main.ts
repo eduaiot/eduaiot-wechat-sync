@@ -1,4 +1,5 @@
-import { App, Notice, Platform, Plugin, PluginSettingTab, Setting, TFile, TFolder, moment, normalizePath, requestUrl } from 'obsidian';
+import { App, Notice, Platform, Plugin, PluginSettingTab, Setting, TFile, TFolder, normalizePath, requestUrl } from 'obsidian';
+import type { SettingDefinitionItem } from 'obsidian';
 import { hasSection, insertBlock } from './md-headings/index';
 
 interface Settings {
@@ -32,6 +33,12 @@ interface InboxItem {
   createdAt: number;
 }
 
+interface ApiBody<T> {
+  retcode?: number;
+  msg?: string;
+  data?: T;
+}
+
 interface Segment {
   start: number;
   end: number;
@@ -59,7 +66,8 @@ function mediaHeaders(url: string): Record<string, string>[] {
   })();
   const key = Object.keys(REFERERS).find((k) => host.includes(k));
   const list: Record<string, string>[] = [{}, { 'User-Agent': MOBILE_UA }];
-  if (key) list.unshift({ 'User-Agent': MOBILE_UA, Referer: REFERERS[key] });
+  const referer = key ? REFERERS[key] : undefined;
+  if (referer) list.unshift({ 'User-Agent': MOBILE_UA, Referer: referer });
   return list;
 }
 
@@ -153,10 +161,19 @@ function trimSlash(url: string) {
 function shortTitle(title: string) {
   const name = title
     .replace(/#\S+/g, ' ')
-    .replace(/[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}\uFE0F\u200D\u20E3]/gu, '')
-    .replace(/[\\/:*?"<>|^\[\]{}()（）【】《》「」“”‘’'`~!！@$%&=+;；，,。.、?？\s]+/g, '')
+    .replace(/\p{Extended_Pictographic}|[\u{1F1E6}-\u{1F1FF}]|\uFE0F|\u200D|\u20E3/gu, '')
+    .replace(/[\\/:*?"<>|^[\]{}()（）【】《》「」“”‘’'`~!！@$%&=+;；，,。.、?？\s]+/g, '')
     .slice(0, 20);
   return name || '未命名视频';
+}
+
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
+function stamp(ms: number) {
+  const d = new Date(ms);
+  const date = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  const time = `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  return { date, time, month: date.slice(0, 7), compact: date.replace(/-/g, ''), full: `${date} ${time}:${pad2(d.getSeconds())}` };
 }
 
 function deviceName(vault: string) {
@@ -181,16 +198,17 @@ export default class EduaiotWechatSyncPlugin extends Plugin {
   private imported = new Map<string, string>();
 
   async onload() {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    const saved = (await this.loadData()) as Partial<Settings> | null;
+    this.settings = { ...DEFAULT_SETTINGS, ...saved };
     if (this.settings.folder === '微信视频') {
       this.settings.folder = DEFAULT_SETTINGS.folder;
       await this.saveData(this.settings);
     }
     this.addSettingTab(new SettingTab(this.app, this));
-    this.addCommand({ id: 'sync-now', name: '立即同步', callback: () => this.sync(true) });
-    this.addRibbonIcon('video', '立即同步易度随手存', () => this.sync(true));
+    this.addCommand({ id: 'sync-now', name: '立即同步', callback: () => void this.sync(true) });
+    this.addRibbonIcon('video', '立即同步易度随手存', () => void this.sync(true));
     this.app.workspace.onLayoutReady(() => {
-      this.sync();
+      void this.sync();
       this.restartTimer();
     });
   }
@@ -203,7 +221,7 @@ export default class EduaiotWechatSyncPlugin extends Plugin {
   restartTimer() {
     if (this.timer !== null) window.clearInterval(this.timer);
     const sec = Math.max(10, this.settings.intervalSec || DEFAULT_SETTINGS.intervalSec);
-    this.timer = this.registerInterval(window.setInterval(() => this.sync(), sec * 1000));
+    this.timer = this.registerInterval(window.setInterval(() => void this.sync(), sec * 1000));
   }
 
   private get base() {
@@ -223,11 +241,12 @@ export default class EduaiotWechatSyncPlugin extends Plugin {
       body: JSON.stringify({ code: code.trim(), name }),
       throw: false
     });
-    if (res.json?.retcode !== 200) throw new Error(res.json?.msg || `绑定失败（${res.status}）`);
-    this.settings.deviceToken = res.json.data.token;
-    this.settings.deviceName = res.json.data.name;
+    const body = res.json as ApiBody<{ token: string; name: string }> | undefined;
+    if (body?.retcode !== 200 || !body.data) throw new Error(body?.msg || `绑定失败（${res.status}）`);
+    this.settings.deviceToken = body.data.token;
+    this.settings.deviceName = body.data.name;
     await this.saveSettings();
-    this.sync();
+    void this.sync();
   }
 
   async unbind() {
@@ -260,8 +279,9 @@ export default class EduaiotWechatSyncPlugin extends Plugin {
         new Notice('手机端已解除绑定，请重新绑定');
         return;
       }
-      if (res.status >= 400) throw new Error(res.json?.msg || `HTTP ${res.status}`);
-      const items: InboxItem[] = res.json?.data ?? [];
+      const body = res.json as ApiBody<InboxItem[]> | undefined;
+      if (res.status >= 400) throw new Error(body?.msg || `HTTP ${res.status}`);
+      const items = body?.data ?? [];
       let count = 0;
       let transcripts = 0;
       let summaries = 0;
@@ -322,9 +342,9 @@ export default class EduaiotWechatSyncPlugin extends Plugin {
     const root = normalizePath(item.options?.folder || this.settings.folder || DEFAULT_SETTINGS.folder);
     const folder = `${root}/闪念`;
     await this.ensureFolder(folder);
-    const created = moment(item.createdAt);
-    const path = `${folder}/${created.format('YYYY-MM-DD')}.md`;
-    const line = `- ${created.format('HH:mm')} ${item.text.trim().replace(/\n+/g, '\n  ')}\n`;
+    const created = stamp(item.createdAt);
+    const path = `${folder}/${created.date}.md`;
+    const line = `- ${created.time} ${item.text.trim().replace(/\n+/g, '\n  ')}\n`;
     const file = this.app.vault.getAbstractFileByPath(path);
     if (file instanceof TFile) {
       await this.app.vault.process(file, (content) => (content && !content.endsWith('\n') ? `${content}\n` : content) + line);
@@ -338,12 +358,12 @@ export default class EduaiotWechatSyncPlugin extends Plugin {
     if (item.type === 'idea') return this.appendIdea(item);
     const opts = item.options || { saveVideo: true, saveCover: false, folder: '' };
     const root = normalizePath(opts.folder || this.settings.folder || DEFAULT_SETTINGS.folder);
-    const created = moment(item.createdAt);
-    const folder = `${root}/${created.format('YYYY-MM')}`;
+    const created = stamp(item.createdAt);
+    const folder = `${root}/${created.month}`;
     const assets = `${folder}/附件`;
     await this.ensureFolder(assets);
 
-    const serial = this.nextSerial(folder, assets, created.format('YYYYMMDD'));
+    const serial = this.nextSerial(folder, assets, created.compact);
     const noteBase = `${serial} ${item.platform ? item.platform + '-' : ''}${shortTitle(item.title)}`;
     const notePath = this.available(folder, noteBase, 'md');
     const assetBase = serial;
@@ -384,7 +404,7 @@ export default class EduaiotWechatSyncPlugin extends Plugin {
       `platform: ${JSON.stringify(item.platform || '')}`,
       `author: ${JSON.stringify(item.author || '')}`,
       `source: ${JSON.stringify(item.text || '')}`,
-      `created: ${moment(item.createdAt).format('YYYY-MM-DD HH:mm:ss')}`,
+      `created: ${created.full}`,
       '---',
       '',
       ...body,
@@ -421,7 +441,7 @@ export default class EduaiotWechatSyncPlugin extends Plugin {
     const assets = `${folder}/附件`;
     await this.ensureFolder(assets);
 
-    const serial = note.basename.split(' ')[0];
+    const serial = note.basename.split(' ')[0] ?? '';
     const serialized = /^\d{8}-\d{3,}$/.test(serial);
     const fresh = serialized ? this.nextSerial(folder, assets, serial.slice(0, 8)) : serial;
     const renames: [string, string][] = [];
@@ -487,7 +507,9 @@ export default class EduaiotWechatSyncPlugin extends Plugin {
           await this.app.vault.createBinary(imgPath, res.arrayBuffer);
           saved.set(url, `![[${imgPath}]]`);
           break;
-        } catch {}
+        } catch {
+          continue;
+        }
       }
       if (!saved.has(url)) saved.set(url, `![](${url})`);
     }
@@ -506,101 +528,164 @@ export default class EduaiotWechatSyncPlugin extends Plugin {
       try {
         const res = await requestUrl({ url: item.video_url, headers });
         if (res.arrayBuffer.byteLength) return res.arrayBuffer;
-      } catch {}
+      } catch {
+        continue;
+      }
     }
     throw new Error('视频链接已过期，请在小程序重新同步');
   }
 }
 
+interface SettingRow {
+  name: string;
+  desc?: string;
+  visible?: () => boolean;
+  build?: (setting: Setting) => void;
+}
+
 class SettingTab extends PluginSettingTab {
   private code = '';
   private advanced = false;
+  private boundRow: Setting | null = null;
 
   constructor(app: App, private plugin: EduaiotWechatSyncPlugin) {
     super(app, plugin);
   }
 
-  display() {
-    const { containerEl } = this;
+  private rows(): SettingRow[] {
     const s = this.plugin.settings;
-    containerEl.empty();
+    return [
+      {
+        name: '已绑定手机',
+        visible: () => !!s.deviceToken,
+        build: (setting) => {
+          this.boundRow = setting;
+          setting.setDesc(`本机名称：${s.deviceName}`).addButton((b) => {
+            b.setButtonText('解除绑定').onClick(async () => {
+              await this.plugin.unbind();
+              this.refresh();
+            });
+            b.buttonEl.addClass('mod-warning');
+          });
+        }
+      },
+      {
+        name: '绑定手机',
+        desc: '在「易度随手存」小程序「我的」页获取 6 位绑定码',
+        visible: () => !s.deviceToken,
+        build: (setting) => {
+          setting.addText((t) => t.setPlaceholder('6 位绑定码').onChange((v) => (this.code = v)));
+          setting.addButton((b) =>
+            b
+              .setButtonText('立即绑定')
+              .setCta()
+              .onClick(async () => {
+                try {
+                  await this.plugin.bind(this.code);
+                  new Notice('绑定成功');
+                  this.refresh();
+                } catch (e) {
+                  new Notice((e as Error).message);
+                }
+              })
+          );
+        }
+      },
+      {
+        name: '默认保存目录',
+        desc: '小程序未指定目录时使用',
+        build: (setting) => {
+          setting.addText((t) =>
+            t.setValue(s.folder).onChange(async (v) => {
+              s.folder = v.trim();
+              await this.plugin.saveSettings();
+            })
+          );
+        }
+      },
+      {
+        name: '立即同步',
+        desc: '不等定时同步，马上拉取手机上的新内容',
+        build: (setting) => {
+          setting.addButton((b) => b.setButtonText('立即同步').setCta().onClick(() => void this.plugin.sync(true)));
+        }
+      },
+      { name: '版本', desc: this.plugin.manifest.version },
+      {
+        name: '高级设置',
+        desc: '一般不需要修改',
+        build: (setting) => {
+          setting.addToggle((t) =>
+            t.setValue(this.advanced).onChange((v) => {
+              this.advanced = v;
+              this.refresh();
+            })
+          );
+        }
+      },
+      {
+        name: '服务器地址',
+        desc: '留空使用官方服务，私有部署时填写',
+        visible: () => this.advanced,
+        build: (setting) => {
+          setting.addText((t) =>
+            t
+              .setPlaceholder(OFFICIAL_SERVER)
+              .setValue(s.serverUrl)
+              .onChange(async (v) => {
+                s.serverUrl = v.trim();
+                await this.plugin.saveSettings();
+              })
+          );
+        }
+      },
+      {
+        name: '同步间隔（秒）',
+        desc: '最小 10 秒',
+        visible: () => this.advanced,
+        build: (setting) => {
+          setting.addText((t) =>
+            t.setValue(String(s.intervalSec)).onChange(async (v) => {
+              const n = Number(v);
+              if (Number.isFinite(n) && n > 0) {
+                s.intervalSec = n;
+                await this.plugin.saveSettings();
+              }
+            })
+          );
+        }
+      }
+    ];
+  }
 
-    if (s.deviceToken) {
-      new Setting(containerEl)
-        .setName('已绑定手机')
-        .setDesc(`本机名称：${s.deviceName}`)
-        .addButton((b) =>
-          b.setButtonText('解除绑定').setWarning().onClick(async () => {
-            await this.plugin.unbind();
-            this.display();
-          })
-        );
-    } else {
-      new Setting(containerEl)
-        .setName('绑定手机')
-        .setDesc('在「易度随手存」小程序「设置」页获取 6 位绑定码')
-        .addText((t) => t.setPlaceholder('6 位绑定码').onChange((v) => (this.code = v)))
-        .addButton((b) =>
-          b.setButtonText('立即绑定').setCta().onClick(async () => {
-            try {
-              await this.plugin.bind(this.code);
-              new Notice('绑定成功');
-              this.display();
-            } catch (e) {
-              new Notice((e as Error).message);
-            }
-          })
-        );
+  getSettingDefinitions(): SettingDefinitionItem[] {
+    return this.rows().map(({ name, desc, visible, build }) =>
+      build ? { name, desc, visible, render: (setting: Setting) => build(setting) } : { name, desc, visible }
+    );
+  }
+
+  private refresh() {
+    const tab = this as unknown as { refreshDomState?: () => void };
+    if (typeof tab.refreshDomState === 'function') {
+      this.boundRow?.setDesc(`本机名称：${this.plugin.settings.deviceName}`);
+      tab.refreshDomState();
+      return;
     }
+    this.renderLegacy();
+  }
 
-    new Setting(containerEl)
-      .setName('默认保存目录')
-      .setDesc('小程序未指定目录时使用')
-      .addText((t) =>
-        t.setValue(s.folder).onChange(async (v) => {
-          s.folder = v.trim();
-          await this.plugin.saveSettings();
-        })
-      );
+  private renderLegacy() {
+    const { containerEl } = this;
+    containerEl.empty();
+    for (const row of this.rows()) {
+      if (row.visible && !row.visible()) continue;
+      const setting = new Setting(containerEl).setName(row.name);
+      if (row.desc) setting.setDesc(row.desc);
+      row.build?.(setting);
+    }
+  }
 
-    new Setting(containerEl).addButton((b) => b.setButtonText('立即同步').setCta().onClick(() => this.plugin.sync(true)));
-
-    new Setting(containerEl)
-      .setName('高级设置')
-      .setDesc('一般不需要修改')
-      .addToggle((t) =>
-        t.setValue(this.advanced).onChange((v) => {
-          this.advanced = v;
-          this.display();
-        })
-      );
-
-    if (!this.advanced) return;
-
-    new Setting(containerEl)
-      .setName('服务器地址')
-      .setDesc('留空使用官方服务，私有部署时填写')
-      .addText((t) =>
-        t
-          .setPlaceholder(OFFICIAL_SERVER)
-          .setValue(s.serverUrl)
-          .onChange(async (v) => {
-            s.serverUrl = v.trim();
-            await this.plugin.saveSettings();
-          })
-      );
-
-    new Setting(containerEl)
-      .setName('同步间隔（秒）')
-      .setDesc('最小 10 秒')
-      .addText((t) =>
-        t.setValue(String(s.intervalSec)).onChange(async (v) => {
-          const n = Number(v);
-          if (Number.isFinite(n) && n > 0) {
-            s.intervalSec = n;
-            await this.plugin.saveSettings();
-          }
-        })
-      );
+  display() {
+    this.renderLegacy();
   }
 }
