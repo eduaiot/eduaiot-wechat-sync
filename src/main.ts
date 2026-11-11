@@ -16,6 +16,7 @@ interface InboxItem {
   video_url: string;
   content?: string;
   images?: string[];
+  audios?: { url: string; name: string; duration: number }[];
   cover_url: string;
   title: string;
   platform: string;
@@ -48,6 +49,7 @@ interface Segment {
 
 const MOBILE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148';
 const REFERERS: Record<string, string> = {
+  'res.wx.qq.com': 'https://mp.weixin.qq.com/',
   'qpic.cn': 'https://mp.weixin.qq.com/',
   bilivideo: 'https://www.bilibili.com/',
   douyin: 'https://www.douyin.com/',
@@ -513,13 +515,42 @@ export default class EduaiotWechatSyncPlugin extends Plugin {
       }
       if (!saved.has(url)) saved.set(url, `![](${url})`);
     }
+    const sounds = new Map<string, string>();
+    let n = 0;
+    for (const audio of item.audios || []) {
+      if (sounds.has(audio.url)) continue;
+      n++;
+      const label = `🎧 ${audio.name}${audio.duration ? `（${clock(audio.duration)}）` : ''}`;
+      let md = `[${label}](${audio.url})`;
+      for (const headers of mediaHeaders(audio.url)) {
+        try {
+          const res = await requestUrl({ url: audio.url, headers });
+          if (!res.arrayBuffer.byteLength) continue;
+          const audioPath = this.available(assets, `${assetBase}-a${String(n).padStart(2, '0')}`, 'mp3');
+          await this.app.vault.createBinary(audioPath, res.arrayBuffer);
+          md = `${label}\n\n![[${audioPath}]]`;
+          break;
+        } catch {
+          continue;
+        }
+      }
+      sounds.set(audio.url, md);
+    }
     const used = new Set<string>();
-    const content = (item.content || '').replace(/!\[\]\((\S+?)\)/g, (_, url: string) => {
-      used.add(url);
-      return saved.get(url) || `![](${url})`;
-    });
+    const heard = new Set<string>();
+    const content = (item.content || '')
+      .replace(/\[🎧 [^\]\n]*\]\((\S+?)\)/g, (raw, url: string) => {
+        if (!sounds.has(url)) return raw;
+        heard.add(url);
+        return sounds.get(url) || raw;
+      })
+      .replace(/!\[\]\((\S+?)\)/g, (_, url: string) => {
+        used.add(url);
+        return saved.get(url) || `![](${url})`;
+      });
+    const extra = [...sounds.entries()].filter(([url]) => !heard.has(url)).map(([, md]) => md);
     const gallery = [...saved.entries()].filter(([url]) => !used.has(url)).map(([, md]) => md);
-    return [...gallery, content].filter(Boolean).join('\n\n');
+    return [...extra, ...gallery, content].filter(Boolean).join('\n\n');
   }
 
   private async download(item: InboxItem): Promise<ArrayBuffer> {
