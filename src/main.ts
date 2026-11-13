@@ -21,6 +21,7 @@ interface InboxItem {
   title: string;
   platform: string;
   author: string;
+  stats?: { likes?: number; loves?: number; shares?: number; comments?: number } | null;
   kind?: 'image' | 'video' | 'audio' | 'file';
   type?: 'idea';
   file_name?: string;
@@ -191,6 +192,16 @@ function deviceName(vault: string) {
             ? 'Linux'
             : '';
   return [system, vault].filter(Boolean).join(' · ');
+}
+
+const STAT_NAMES = ['likes', 'loves', 'shares', 'comments'] as const;
+
+function statLines(stats: InboxItem['stats']): string[] {
+  if (!stats) return [];
+  return STAT_NAMES.flatMap((key) => {
+    const value = stats[key];
+    return typeof value === 'number' && Number.isFinite(value) ? [`${key}: ${Math.floor(value)}`] : [];
+  });
 }
 
 export default class EduaiotWechatSyncPlugin extends Plugin {
@@ -405,6 +416,7 @@ export default class EduaiotWechatSyncPlugin extends Plugin {
       `title: ${JSON.stringify(item.title || '')}`,
       `platform: ${JSON.stringify(item.platform || '')}`,
       `author: ${JSON.stringify(item.author || '')}`,
+      ...statLines(item.stats),
       `source: ${JSON.stringify(item.text || '')}`,
       `created: ${created.full}`,
       '---',

@@ -2,17 +2,18 @@
 
 [中文说明](#中文说明)
 
-Save videos, articles, photos, files and voice recordings on your phone with the **易度随手存** (Yidu Suishoucun) WeChat mini program or the iOS Shortcut, and they appear in your vault automatically — with transcripts and AI notes.
-
 ## Features
 
 - **Video links**: WeChat Channels, Bilibili, Douyin and more. The video file is saved as an attachment and embedded in the note.
-- **Articles**: WeChat Official Account articles and image posts are saved as Markdown, with images downloaded locally.
+- **Articles**: WeChat Official Account articles and image posts are saved as Markdown, with images and embedded audio downloaded locally.
 - **Photos, files and recordings**: anything uploaded from the mini program (photos, videos, PDF, Word, voice recordings) is saved as an attachment.
 - **Transcripts**: videos and recordings are transcribed on the server; the transcript is appended to the note, grouped into paragraphs with timestamps.
 - **AI notes**: an optional summary with key points, analogies, highlights and keywords is inserted above the transcript.
 - **Category folders**: set up folders such as `English` or `Math` in the mini program. New items go to the matching folder, and the note is moved (together with its attachments) if the AI later decides it belongs elsewhere.
+- **Engagement stats**: for WeChat Channels videos, likes, loves, shares and comments are written into the note frontmatter when available.
 - **Tidy structure**: notes are grouped by month (`<folder>/2026-10/`), attachments are stored in `附件/` next to the note, and files are named `20261026-001 Platform-Title.md`.
+
+Save videos, articles, photos, files and voice recordings on your phone with the **易度随手存** (Yidu Suishoucun) WeChat mini program or the iOS Shortcut, and they appear in your vault automatically — with transcripts and AI notes.
 
 ## Requirements
 
@@ -80,17 +81,18 @@ Scan to open the 易度随手存 mini program, or add me on WeChat for feedback 
 
 ## 中文说明
 
-在手机上用 **易度随手存** 微信小程序或 iPhone 快捷指令保存视频、文章、照片、文件和录音，内容会自动同步到你的 Obsidian 笔记库，并附带文字稿和 AI 笔记。
-
 ### 功能
 
 - **视频链接**：支持视频号、B 站、抖音等。视频保存为附件并插入笔记。
-- **文章**：公众号文章和图片帖保存为 Markdown，图片下载到本地。
+- **文章**：公众号文章和图片帖保存为 Markdown，图片与文内音频下载到本地。
 - **照片、文件和录音**：小程序里上传的照片、视频、PDF、Word、录音都会保存为附件。
 - **文字稿**：视频和录音在服务器上转成文字，按段落和时间点追加到笔记里。
 - **AI 笔记**：可选。在文字稿上方插入一句话总结、核心内容、类比拆解、亮点和关键词。
 - **分类目录**：在小程序里设置「英语」「数学」等分类目录，新内容自动放进对应目录。AI 总结后如果判断属于别的分类，会把笔记连同附件一起移过去。
+- **互动数据**：视频号笔记可把点赞、喜欢、转发、评论数写入 frontmatter（有数据时）。
 - **目录整齐**：按月份分子目录（`目录/2026-10/`），附件放在笔记旁边的 `附件/` 里，文件名形如 `20261026-001 平台-标题.md`。
+
+在手机上用 **易度随手存** 微信小程序或 iPhone 快捷指令保存视频、文章、照片、文件和录音，内容会自动同步到你的 Obsidian 笔记库，并附带文字稿和 AI 笔记。
 
 ### 使用前提
 
