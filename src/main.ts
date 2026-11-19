@@ -8,6 +8,18 @@ interface Settings {
   deviceName: string;
   folder: string;
   intervalSec: number;
+  transcribe: boolean;
+  summarize: boolean;
+}
+
+interface UserPrefs {
+  saveVideo?: boolean;
+  saveCover?: boolean;
+  saveAlbum?: boolean;
+  transcribe?: boolean;
+  summarize?: boolean;
+  folder?: string;
+  categories?: unknown[];
 }
 
 interface InboxItem {
@@ -154,7 +166,9 @@ const DEFAULT_SETTINGS: Settings = {
   deviceToken: '',
   deviceName: '',
   folder: '易度随手存',
-  intervalSec: 30
+  intervalSec: 30,
+  transcribe: false,
+  summarize: false
 };
 
 function trimSlash(url: string) {
@@ -227,6 +241,7 @@ export default class EduaiotWechatSyncPlugin extends Plugin {
   }
 
   async saveSettings() {
+    if (!this.settings.transcribe) this.settings.summarize = false;
     await this.saveData(this.settings);
     this.restartTimer();
   }
@@ -245,6 +260,53 @@ export default class EduaiotWechatSyncPlugin extends Plugin {
     return { Authorization: `Bearer ${this.settings.deviceToken}` };
   }
 
+  async loadPrefs() {
+    if (!this.settings.deviceToken) return;
+    const res = await requestUrl({ url: `${this.base}/api/prefs`, headers: this.headers, throw: false });
+    if (res.status === 401) {
+      await this.unbind();
+      throw new Error('手机端已解除绑定，请重新绑定');
+    }
+    const body = res.json as ApiBody<{ prefs: UserPrefs }> | undefined;
+    if (res.status >= 400 || body?.retcode !== 200 || !body.data?.prefs) {
+      throw new Error(body?.msg || `读取设置失败（${res.status}）`);
+    }
+    const prefs = body.data.prefs;
+    this.settings.transcribe = !!prefs.transcribe;
+    this.settings.summarize = !!prefs.transcribe && !!prefs.summarize;
+    if (prefs.folder) this.settings.folder = prefs.folder;
+    await this.saveSettings();
+  }
+
+  async savePrefs() {
+    if (!this.settings.deviceToken) throw new Error('请先绑定手机');
+    if (!this.settings.transcribe) this.settings.summarize = false;
+    const res = await requestUrl({
+      url: `${this.base}/api/prefs`,
+      method: 'PUT',
+      contentType: 'application/json',
+      headers: this.headers,
+      body: JSON.stringify({
+        transcribe: this.settings.transcribe,
+        summarize: this.settings.summarize,
+        folder: this.settings.folder
+      }),
+      throw: false
+    });
+    if (res.status === 401) {
+      await this.unbind();
+      throw new Error('手机端已解除绑定，请重新绑定');
+    }
+    const body = res.json as ApiBody<{ prefs?: UserPrefs }> | undefined;
+    if (res.status >= 400 || body?.retcode !== 200) throw new Error(body?.msg || `保存设置失败（${res.status}）`);
+    const prefs = body.data?.prefs;
+    if (prefs) {
+      this.settings.transcribe = !!prefs.transcribe;
+      this.settings.summarize = !!prefs.transcribe && !!prefs.summarize;
+      await this.saveSettings();
+    }
+  }
+
   async bind(code: string) {
     const name = deviceName(this.app.vault.getName());
     const res = await requestUrl({
@@ -259,6 +321,11 @@ export default class EduaiotWechatSyncPlugin extends Plugin {
     this.settings.deviceToken = body.data.token;
     this.settings.deviceName = body.data.name;
     await this.saveSettings();
+    try {
+      await this.loadPrefs();
+    } catch {
+      /* 绑定后读取失败不阻断 */
+    }
     void this.sync();
   }
 
@@ -647,6 +714,55 @@ class SettingTab extends PluginSettingTab {
         }
       },
       {
+        name: '自动转文字',
+        desc: '视频和录音自动生成文字稿（默认关闭；需已绑定手机）',
+        visible: () => !!s.deviceToken,
+        build: (setting) => {
+          setting.addToggle((t) =>
+            t.setValue(!!s.transcribe).onChange(async (v) => {
+              s.transcribe = v;
+              if (!v) s.summarize = false;
+              await this.plugin.saveSettings();
+              try {
+                await this.plugin.savePrefs();
+                this.refresh();
+              } catch (e) {
+                new Notice((e as Error).message);
+                this.refresh();
+              }
+            })
+          );
+        }
+      },
+      {
+        name: '自动概括',
+        desc: '转文字后生成要点概括（默认关闭；关闭「自动转文字」时会强制关闭）',
+        visible: () => !!s.deviceToken,
+        build: (setting) => {
+          setting.addToggle((t) =>
+            t
+              .setValue(!!s.transcribe && !!s.summarize)
+              .setDisabled(!s.transcribe)
+              .onChange(async (v) => {
+                if (!s.transcribe) {
+                  s.summarize = false;
+                  this.refresh();
+                  return;
+                }
+                s.summarize = v;
+                await this.plugin.saveSettings();
+                try {
+                  await this.plugin.savePrefs();
+                  this.refresh();
+                } catch (e) {
+                  new Notice((e as Error).message);
+                  this.refresh();
+                }
+              })
+          );
+        }
+      },
+      {
         name: '立即同步',
         desc: '不等定时同步，马上拉取手机上的新内容',
         build: (setting) => {
@@ -730,5 +846,13 @@ class SettingTab extends PluginSettingTab {
 
   display() {
     this.renderLegacy();
+    if (this.plugin.settings.deviceToken) {
+      void this.plugin.loadPrefs().then(
+        () => this.refresh(),
+        () => {
+          /* 打开设置时拉取失败不打扰 */
+        }
+      );
+    }
   }
 }
