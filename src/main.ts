@@ -736,29 +736,28 @@ class SettingTab extends PluginSettingTab {
       },
       {
         name: '自动概括',
-        desc: '转文字后生成要点概括（默认关闭；关闭「自动转文字」时会强制关闭）',
-        visible: () => !!s.deviceToken,
+        desc: '转文字后再生成要点概括（默认关闭）',
+        // 依赖「自动转文字」：未开启时不显示，避免开关灰掉点不了
+        visible: () => !!s.deviceToken && !!s.transcribe,
         build: (setting) => {
           setting.addToggle((t) =>
-            t
-              .setValue(!!s.transcribe && !!s.summarize)
-              .setDisabled(!s.transcribe)
-              .onChange(async (v) => {
-                if (!s.transcribe) {
-                  s.summarize = false;
-                  this.refresh();
-                  return;
-                }
-                s.summarize = v;
-                await this.plugin.saveSettings();
-                try {
-                  await this.plugin.savePrefs();
-                  this.refresh();
-                } catch (e) {
-                  new Notice((e as Error).message);
-                  this.refresh();
-                }
-              })
+            t.setValue(!!s.summarize).onChange(async (v) => {
+              if (!s.transcribe) {
+                s.summarize = false;
+                new Notice('请先打开「自动转文字」');
+                this.refresh();
+                return;
+              }
+              s.summarize = v;
+              await this.plugin.saveSettings();
+              try {
+                await this.plugin.savePrefs();
+                this.refresh();
+              } catch (e) {
+                new Notice((e as Error).message);
+                this.refresh();
+              }
+            })
           );
         }
       },
