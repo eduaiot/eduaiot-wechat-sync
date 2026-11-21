@@ -129,7 +129,7 @@ interface Summary {
 const cell = (s: string) => s.replace(/\|/g, '｜').replace(/\n/g, ' ');
 
 function summaryMarkdown(s: Summary) {
-  const out = ['', '## AI 笔记', ''];
+  const out = ['', '## 概括', ''];
   if (s.summary) out.push(`> ${s.summary}`, '');
   if (s.key_points?.length) out.push('### 核心内容', '', ...s.key_points.map((p) => `- ${p}`), '');
   if (s.analogies?.length) {
@@ -143,7 +143,7 @@ function summaryMarkdown(s: Summary) {
 }
 
 function insertSummary(content: string, block: string) {
-  if (hasSection(content, 'AI 笔记')) return content;
+  if (hasSection(content, '概括') || hasSection(content, 'AI 笔记')) return content;
   return insertBlock(content, block, '文字稿');
 }
 
@@ -407,7 +407,7 @@ export default class EduaiotWechatSyncPlugin extends Plugin {
       }
       if (count) new Notice(`已同步 ${count} 条资料`);
       if (transcripts) new Notice(`已补充 ${transcripts} 份文字稿`);
-      if (summaries) new Notice(`已补充 ${summaries} 份 AI 笔记`);
+      if (summaries) new Notice(`已补充 ${summaries} 份概括`);
       if (moved) new Notice(`已按内容把 ${moved} 条笔记移到对应目录`);
       if (manual && !count && !transcripts && !summaries && !moved) new Notice('没有新内容');
     } catch (e) {
@@ -709,54 +709,6 @@ class SettingTab extends PluginSettingTab {
             t.setValue(s.folder).onChange(async (v) => {
               s.folder = v.trim();
               await this.plugin.saveSettings();
-            })
-          );
-        }
-      },
-      {
-        name: '自动转文字',
-        desc: '视频和录音自动生成文字稿（默认关闭；需已绑定手机）',
-        visible: () => !!s.deviceToken,
-        build: (setting) => {
-          setting.addToggle((t) =>
-            t.setValue(!!s.transcribe).onChange(async (v) => {
-              s.transcribe = v;
-              if (!v) s.summarize = false;
-              await this.plugin.saveSettings();
-              try {
-                await this.plugin.savePrefs();
-                this.refresh();
-              } catch (e) {
-                new Notice((e as Error).message);
-                this.refresh();
-              }
-            })
-          );
-        }
-      },
-      {
-        name: '自动概括',
-        desc: '转文字后再生成要点概括（默认关闭）',
-        // 依赖「自动转文字」：未开启时不显示，避免开关灰掉点不了
-        visible: () => !!s.deviceToken && !!s.transcribe,
-        build: (setting) => {
-          setting.addToggle((t) =>
-            t.setValue(!!s.summarize).onChange(async (v) => {
-              if (!s.transcribe) {
-                s.summarize = false;
-                new Notice('请先打开「自动转文字」');
-                this.refresh();
-                return;
-              }
-              s.summarize = v;
-              await this.plugin.saveSettings();
-              try {
-                await this.plugin.savePrefs();
-                this.refresh();
-              } catch (e) {
-                new Notice((e as Error).message);
-                this.refresh();
-              }
             })
           );
         }
