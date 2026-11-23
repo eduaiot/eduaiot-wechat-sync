@@ -208,13 +208,18 @@ function deviceName(vault: string) {
   return [system, vault].filter(Boolean).join(' · ');
 }
 
-const STAT_NAMES = ['likes', 'loves', 'shares', 'comments'] as const;
+const STAT_LABELS: { key: keyof NonNullable<InboxItem['stats']>; label: string }[] = [
+  { key: 'likes', label: '收藏' },
+  { key: 'loves', label: '点赞' },
+  { key: 'shares', label: '转发' },
+  { key: 'comments', label: '评论数' }
+];
 
 function statLines(stats: InboxItem['stats']): string[] {
   if (!stats) return [];
-  return STAT_NAMES.flatMap((key) => {
+  return STAT_LABELS.flatMap(({ key, label }) => {
     const value = stats[key];
-    return typeof value === 'number' && Number.isFinite(value) ? [`${key}: ${Math.floor(value)}`] : [];
+    return typeof value === 'number' && Number.isFinite(value) ? [`${label}: ${Math.floor(value)}`] : [];
   });
 }
 
